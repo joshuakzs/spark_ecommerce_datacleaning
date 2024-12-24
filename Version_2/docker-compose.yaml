@@ -1,0 +1,51 @@
+# docker-compose.yml
+services:
+  spark-master:
+    image: bitnami/spark:latest
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "8080:8080"  # Spark UI
+    networks:
+      - spark-network
+    volumes:
+      - ./input_data:/app/input_data  # Mount the input data directory
+      - ./output_data:/app/output_data  # Mount the output data directory  
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'  # Allocate 1 full CPU core to this container
+
+  spark-worker:
+    image: bitnami/spark:latest
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    networks:
+      - spark-network
+    volumes:
+      - ./input_data:/app/input_data  # Mount the input data directory
+      - ./output_data:/app/output_data  # Mount the output data directory
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'  # Allocate 1 full CPU core to this container
+
+  pyspark-etl-app:
+    build: .
+    depends_on:
+      - spark-master
+      - spark-worker
+    networks:
+      - spark-network
+    volumes:
+      - ./input_data:/app/input_data  # Mount the input data directory
+      - ./output_data:/app/output_data  # Mount the output data directory
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'  # Allocate 1 full CPU core to this container
+
+networks:
+  spark-network:
+    driver: bridge
